@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI Interface</title>
+    <style>
+        body {
+            background-color: #050b14;
+            color: #00f0ff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .hud-container {
+            text-align: center;
+        }
+        .arc-reactor {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px double #00f0ff;
+            box-shadow: 0 0 20px #00f0ff, inset 0 0 20px #00f0ff;
+            margin: 20px auto;
+            animation: pulse 2s infinite alternate;
+            cursor: pointer;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 10px #00f0ff; }
+            100% { transform: scale(1.05); box-shadow: 0 0 30px #00f0ff; }
+        }
+        .status {
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin-top: 15px;
+            text-transform: uppercase;
+        }
+        #transcript {
+            margin-top: 20px;
+            color: #88c9cc;
+            max-width: 500px;
+            min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="hud-container">
+    <h1>J.A.R.V.I.S. SYSTEM</h1>
+    <div class="arc-reactor" id="activation-btn"></div>
+    <div class="status" id="status-text">System: Offline</div>
+    <div id="transcript">Click the core to awaken JARVIS...</div>
+</div>
+
+<script>
+    const activationBtn = document.getElementById('activation-btn');
+    const statusText = document.getElementById('status-text');
+    const transcriptDiv = document.getElementById('transcript');
+
+    // Web Speech API for voice recognition directly in the browser
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        transcriptDiv.innerText = "Error: Your browser does not support Speech Recognition.";
+    } else {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+
+        activationBtn.addEventListener('click', () => {
+            recognition.start();
+            statusText.innerText = "System: Listening...";
+            statusText.style.color = "#ff0055";
+        });
+
+        recognition.onresult = async (event) => {
+            const userCommand = event.results[0][0].transcript;
+            transcriptDiv.innerHTML = `<strong>You:</strong> ${userCommand}`;
+            statusText.innerText = "System: Processing...";
+            statusText.style.color = "#00f0ff";
+
+            // Send voice input to backend
+            try {
+                const response = await fetch('http://127.0.0', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: userCommand })
+                });
+                const data = await response.json();
+                
+                transcriptDiv.innerHTML += `<br><strong>JARVIS:</strong> ${data.reply}`;
+                speak(data.reply);
+            } catch (err) {
+                statusText.innerText = "System: Connection Error";
+            }
+        };
+
+        recognition.onend = () => {
+            if(statusText.innerText === "System: Listening...") {
+                statusText.style.color = "#00f0ff";
+                statusText.innerText = "System: Standby";
+            }
+        };
+    }
+
+    // Text-to-Speech Engine
+    function speak(text) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        // Fallback or selection for a robotic/British male butler voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const butlerVoice = voices.find(voice => voice.lang.includes('en-GB'));
+        if (butlerVoice) utterance.voice = butlerVoice;
+        
+        statusText.innerText = "System: Speaking...";
+        window.speechSynthesis.speak(utterance);
+        utterance.onend = () => {
+            statusText.innerText = "System: Standby";
+        };
+    }
+</script>
+</body>
+</html>
