@@ -1,0 +1,41 @@
+python
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import webbrowser
+import datetime
+
+app = Flask(__name__)
+CORS(app) # Allows your HTML file to communicate securely with the Python script
+
+JARVIS_PROMPT = "You are JARVIS, a helpful, deeply loyal, and slightly sarcastic AI butler like Iron Man's assistant. Keep replies short and crisp."
+
+@app.route('/api/command', mode=['POST'])
+def process_command():
+    data = request.get_json()
+    command = data.get('command', '').lower()
+    reply = ""
+
+    # Integrated system automations
+    if 'time' in command:
+        current_time = datetime.datetime.now().strftime("%I:%M %p")
+        reply = f"It is currently {current_time}, sir."
+        
+    elif 'open google' in command:
+        webbrowser.open("https://google.com")
+        reply = "Opening Google immediately, sir."
+        
+    elif 'open youtube' in command:
+        webbrowser.open("https://www.youtube.com")
+        reply = "Navigating to YouTube right away."
+        
+    elif 'who are you' in command or 'your name' in command:
+        reply = "I am J.A.R.V.I.S., your virtual personal assistant. Standing by."
+        
+    else:
+        # Fallback response simulating the assistant persona
+        reply = f"I understood your request to '{command}', but I require an API connection upgrade to execute complex logic, sir."
+
+    return jsonify({"reply": reply})
+
+if __name__ == '__main__':
+    app.run(port=5000, debug=True)
